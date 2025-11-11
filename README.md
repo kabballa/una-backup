@@ -28,6 +28,30 @@ This document describes how to configure and automate daily, weekly, monthly, an
 | `/opt/kabballa/apps/una-backup/daily_backup.sh` | Main backup automation script |
 | `/opt/kabballa/apps/una-backup/data/logs/backup_rotation.log` | Backup log file |
 
+
+### Initial Setup & Installation
+
+To deploy the **UNA Backup** system, follow these steps to clone the repository and set up the directory structure.
+
+### Clone the Repository
+
+Navigate to the `/opt/kabballa/apps/` directory and clone the project:
+
+```bash
+mkdir -p /opt/kabballa
+mkdir -p /opt/kabballa/apps
+cd /opt/kabballa/apps/
+git clone https://github.com/kabballa/una-backup.git
+```
+
+### Create Data Directory
+
+The backup system requires a dedicated directory for configuration and log files:
+
+```bash
+mkdir -p /opt/kabballa/apps/una-backup/data/
+```
+
 ## ⚙️ 2. Environment Configuration (`.env`)
 
 #### Prepare the Environment Variables  
@@ -41,7 +65,6 @@ Edit the `.env` file to set the required variables for your setup.
 ---
 
 ## 🧠 3. Main Script (`daily_backup.sh`)
-
 
 ```
 /opt/kabballa/apps/una-backup/daily_backup.sh
