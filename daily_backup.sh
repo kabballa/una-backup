@@ -8,17 +8,18 @@
 #!/bin/bash
 
 # Script: daily_backup.sh
-# Purpose: Performs daily backups for one or more UNA sites defined in .env, handles rotation and cleanup.
+# Purpose: Perform daily backups for one or more UNA sites defined in .env,
+#          handles rotation and cleanup.
 #
 # RETENTION POLICY:
 # - Daily: Keep 7 days (time-based cleanup).
 # - Weekly & Monthly: Keep N most recent copies (count-based cleanup).
-# - Annual: Kept indefinitely (moved only on Day 001).
+# - Annual: Kept indefinitely (moved only on January 1st).
 
 # ==============================================================================
 # 1. Load Environment Variables (.env)
 # ==============================================================================
-ENV_FILE="$(dirname "$0")/data/.env" 
+ENV_FILE="$(dirname "$0")/data/.env"
 
 if [ -f "$ENV_FILE" ]; then
     source "$ENV_FILE"
@@ -65,7 +66,7 @@ echo "===== Backup rotation started at $(date) =====" >> "$SCRIPT_LOG"
 # ==============================================================================
 
 handle_retention_move() {
-    local BX_DOL_URL_ROOT="$1" 
+    local SITE_NAME="$1"
     local SOURCE_FILE="$2"
     local FILE_TYPE="$3"
     
@@ -84,7 +85,7 @@ handle_retention_move() {
     fi
     
     if [ -n "$TARGET_DIR" ]; then
-        DEST_FILE="$TARGET_DIR/$FILE_TYPE/${BX_DOL_URL_ROOT}-$DATE.tar.gz"
+        DEST_FILE="$TARGET_DIR/$FILE_TYPE/${SITE_NAME}-$DATE.tar.gz"
         mv "$SOURCE_FILE" "$DEST_FILE"
         echo "  ➡️ Moved $FILE_TYPE for $LOG_MSG retention." >> "$SCRIPT_LOG"
     fi
@@ -106,7 +107,12 @@ perform_backup_for_site() {
     DB_HOST=$(grep "define('BX_DATABASE_HOST'" "$HEADER_FILE" | cut -d"'" -f4)
     DB_SOCK=$(grep "define('BX_DATABASE_SOCK'" "$HEADER_FILE" | cut -d"'" -f4)
 
-    BX_DOL_URL_ROOT=$(grep "define('BX_DOL_URL_ROOT'" "$HEADER_FILE" | grep -v 'isset' | cut -d"'" -f4 | sed 's|https\?://||;s|/||g')
+    # Extract site URL and clean it
+    RAW_URL=$(grep "define('BX_DOL_URL_ROOT'" "$HEADER_FILE" | grep -v 'isset' | cut -d"'" -f4)
+    CLEAN_URL=${RAW_URL#https://}
+    CLEAN_URL=${CLEAN_URL#http://}
+    BX_DOL_URL_ROOT=${CLEAN_URL%/}   # remove trailing slash only
+
     [ -z "$BX_DOL_URL_ROOT" ] && BX_DOL_URL_ROOT=$(basename "$SITE_DIR")
 
     echo "  Starting backup for $BX_DOL_URL_ROOT (Path: $SITE_DIR) at $(date)" >> "$SCRIPT_LOG"
@@ -177,7 +183,7 @@ echo "  🧹 Cleaned Daily backups older than $RETENTION_DAILY_DAYS days." >> "$
 # Cleanup weekly backups (keep only RETENTION_WEEKLY_COUNT most recent files)
 cleanup_by_count "$WEEKLY_DIR" "$RETENTION_WEEKLY_COUNT" "Weekly"
 
-# Weekly & Monthly cleanup (count-based)
+# Cleanup monthly backups (keep only RETENTION_MONTHLY_COUNT most recent files)
 cleanup_by_count "$MONTHLY_DIR" "$RETENTION_MONTHLY_COUNT" "Monthly"
 
 # Annual backups are kept indefinitely
