@@ -13,7 +13,7 @@ If you want to support our project and help us grow it, you can [become a sponso
   </a>
 </p>
 
-# 🧩 KABBALLA – Automated Backup & Retention System
+# 🧩 KABBALLA – UNA APP Automated Backup & Retention System
 
 ![Backupv](assets/backup.png)
 
@@ -26,7 +26,7 @@ This document describes how to configure and automate daily, weekly, monthly, an
 | Path                                                  | Description                    |
 | ----------------------------------------------------- | ------------------------------ |
 | `/opt/kabballa/data/backups/`                         | Base backup directory          |
-| `/opt/kabballa/data/backups/.env`                     | Environment configuration file |
+| `/opt/kabballa/scripts/.env`                          | Environment configuration file |
 | `/opt/apps/una`                                       | Root directory with UNA sites  |
 | `/opt/kabballa/scripts/daily_backup.sh`               | Main backup automation script  |
 | `/opt/kabballa/data/backups/logs/backup_rotation.log` | Backup log file                |
@@ -91,7 +91,7 @@ chmod +x /opt/kabballa/scripts/daily_backup.sh
 # ==============================================================================
 # 1. Load Environment Variables (.env)
 # ==============================================================================
-ENV_FILE="/opt/kabballa/data/backups/.env"
+ENV_FILE="$(dirname "$0")/.env"
 
 if [ -f "$ENV_FILE" ]; then
     source "$ENV_FILE"
