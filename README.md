@@ -277,6 +277,17 @@ You should see:
 
 > 🧠 **Tip:** Extend the backup system with `rclone` or `rsync` to replicate backups to remote storage (e.g., S3, Google Drive, Ceph Object Gateway).
 
+## Contributing
+
+We welcome contributions to this project! Please refer to our [Contributing Guidelines](CONTRIBUTING.md) for detailed instructions on how to contribute.
+
+For questions or contributions, feel free to contact the **Backup Developer** at [olariu_romeo@yahoo.it](mailto:olariu_romeo@yahoo.it).
+
+
+### Code of Conduct
+
+We are committed to fostering an inclusive and respectful environment. Please review our [Contributor Code of Conduct](CODE_OF_CONDUCT.md) for guidelines on acceptable behavior.
+
 ## Trademarks and Copyright
 
 This software listing is packaged by Romulus. All trademarks mentioned are the property of their respective owners, and their use does not imply any affiliation or endorsement.
