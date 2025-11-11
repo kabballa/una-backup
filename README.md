@@ -105,10 +105,25 @@ Add this section:
 # The email address to receive alerts
 MAILTO="your.email@example.com"
 
-# Schedule: Runs daily at 03:00 AM
-# Redirects only STDOUT (success messages) to /dev/null
-# STDERR (critical errors) are emailed automatically
-0 3 * * * /opt/kabballa/apps/una-backup/daily_backup.sh >>/dev/null
+# CRON Schedule Examples for daily_backup.sh
+# ------------------------------------------------
+# 1. Daily backup at 03:00 AM
+#    - STDOUT is discarded (success messages)
+#    - STDERR is emailed automatically to $MAILTO
+0 3 * * * /opt/kabballa/apps/una-backup/daily_backup.sh >> /dev/null
+
+# 2. Daily backup at 02:00 AM, log output to a file
+#    - Keeps a daily log at /var/log/una_backup.log
+#0 2 * * * /opt/kabballa/apps/una-backup/daily_backup.sh >> /var/log/una_backup.log 2>&1
+
+# 3. Weekly backup on Sundays at 04:00 AM
+#    - Combines both STDOUT and STDERR in one log
+#0 4 * * 0 /opt/kabballa/apps/una-backup/daily_backup.sh >> /var/log/una_backup_weekly.log 2>&1
+
+# Notes:
+# - Adjust the PATH to daily_backup.sh if installed in a different location
+# - Make sure the user running the cron has execution permissions
+# - MAILTO must be set for email alerts on errors
 ```
 
 ## 📧 5. Email Alert Behavior
