@@ -8,11 +8,11 @@
 #!/bin/bash
 
 # Script: daily_backup.sh
-# Purpose: Perform daily backups for one or more UNA sites defined in .env,
+# Purpose: Perform daily backup for one or more UNA sites defined in .env,
 #          handles rotation and cleanup.
 #
 # RETENTION POLICY:
-# - Daily: Keep 7 days (time-based cleanup).
+# - Daily: Keep N days (time-based cleanup).
 # - Weekly & Monthly: Keep N most recent copies (count-based cleanup).
 # - Annual: Keep N years (time-based cleanup).
 
@@ -30,7 +30,7 @@ else
     RETENTION_DAILY_DAYS=7
     RETENTION_WEEKLY_COUNT=4
     RETENTION_MONTHLY_COUNT=12
-    RETENTION_ANNUAL_YEARS=5 # NEW DEFAULT: Keep 5 years
+    RETENTION_ANNUAL_YEARS=5 
 fi
 
 # Ensure defaults if variables missing
@@ -39,7 +39,7 @@ BX_DIRECTORY_PATH_ROOT=${BX_DIRECTORY_PATH_ROOT:-/opt/una}
 RETENTION_DAILY_DAYS=${RETENTION_DAILY_DAYS:-7}
 RETENTION_WEEKLY_COUNT=${RETENTION_WEEKLY_COUNT:-4}
 RETENTION_MONTHLY_COUNT=${RETENTION_MONTHLY_COUNT:-12}
-RETENTION_ANNUAL_YEARS=${RETENTION_ANNUAL_YEARS:-5} # NEW DEFAULT
+RETENTION_ANNUAL_YEARS=${RETENTION_ANNUAL_YEARS:-5}
 
 # Check if the mandatory path is set
 if [ -z "$BX_DIRECTORY_PATH_ROOT" ]; then
@@ -82,6 +82,7 @@ handle_retention_move() {
     local TARGET_DIR=""
     local LOG_MSG=""
     
+    # Priority: Annual > Monthly > Weekly
     if [ "$DAY_OF_YEAR" -eq 1 ]; then
         TARGET_DIR="$ANNUAL_DIR"
         LOG_MSG="ANNUAL"
@@ -96,14 +97,12 @@ handle_retention_move() {
     # If a retention target is found, move the file
     if [ -n "$TARGET_DIR" ]; then
         DEST_FILE="$TARGET_DIR/$FILE_TYPE/${SITE_NAME}-$DATE.tar.gz"
-        # We use hard links for Daily/Weekly/Monthly, but for ANNUAL (and only on Day 1), 
-        # we move the file from Daily/ to Annual/ since Daily is cleaned by time.
-        # UPDATE: Since daily is cleaned by mtime, we must keep the original in daily. 
-        # We will use hard links for Weekly/Monthly/Annual if the source is Daily.
-        # Since the provided script moves the file, we will revert to hard links to 
-        # allow time-based daily cleanup to function correctly.
-        ln "$SOURCE_FILE" "$DEST_FILE"
-        echo "  🔗 Hard-linked $FILE_TYPE for $LOG_MSG retention." >> "$SCRIPT_LOG"
+        
+        # --- CRITICAL FIX: Use 'mv' instead of 'ln' to ensure the file 
+        # is preserved when the original in 'daily' is deleted by time-based cleanup.
+        mv "$SOURCE_FILE" "$DEST_FILE"
+        
+        echo "  ➡️ Moved $FILE_TYPE for $LOG_MSG retention." >> "$SCRIPT_LOG"
     fi
 }
 
@@ -137,10 +136,17 @@ perform_backup_for_site() {
 
     # --- Files Backup (HTML) ---
     TAR_FILE_PATH="$DAILY_DIR/html/${BX_DOL_URL_ROOT}-$DATE.tar.gz"
+    # Use SITE_DIR (BX_DIRECTORY_PATH_ROOT) as the source directory
     tar -czf "$TAR_FILE_PATH" -C "$SITE_DIR" . 2>/dev/null
+    
     if [ $? -eq 0 ]; then
         echo "  ✔️ Files backup completed for $BX_DOL_URL_ROOT" >> "$SCRIPT_LOG"
+        
+        # Only attempt to move the file if it was successfully created in DAILY
         handle_retention_move "$BX_DOL_URL_ROOT" "$TAR_FILE_PATH" "html"
+        
+        # If the file was not moved (i.e., it's a regular daily backup), 
+        # it remains in $DAILY_DIR and will be cleaned up by time (mtime).
     else
         echo "  ❌ Files backup failed for $BX_DOL_URL_ROOT" >> "$SCRIPT_LOG"
     fi
@@ -160,7 +166,11 @@ perform_backup_for_site() {
 
         if [ $? -eq 0 ]; then
             echo "  ✔️ Database backup completed for $BX_DOL_URL_ROOT" >> "$SCRIPT_LOG"
+            
+            # Only attempt to move the file if it was successfully created in DAILY
             handle_retention_move "$BX_DOL_URL_ROOT" "$DB_FILE_PATH" "db"
+            
+            # If the file was not moved, it remains in $DAILY_DIR for time-based cleanup.
         else
             echo "  ❌ Database backup failed for $BX_DOL_URL_ROOT" >> "$SCRIPT_LOG"
         fi
@@ -175,19 +185,19 @@ cleanup_by_count() {
 
     local FILES_TO_KEEP=$((COUNT + 1))
     
+    # Delete oldest files, keeping the top N newest files
     (ls -t "$DIR_PATH/html"/*.tar.gz 2>/dev/null | tail -n +$FILES_TO_KEEP | xargs -r rm -f)
     (ls -t "$DIR_PATH/db"/*.sql.gz 2>/dev/null | tail -n +$FILES_TO_KEEP | xargs -r rm -f)
     
     echo "  🧹 Cleaned $TYPE backups, keeping the $COUNT most recent copies." >> "$SCRIPT_LOG"
 }
 
-# Cleans up annual retention based on number of years (NEW FUNCTION)
+# Cleans up annual retention based on number of years 
 cleanup_annual_by_years() {
     local DIR_PATH="$1"
     local YEARS="$2"
     
     # Calculate the modification time in days for the given number of years
-    # 365 days/year * YEARS
     local DAYS_TO_KEEP=$((365 * YEARS))
 
     # Find files older than the calculated days and delete them
