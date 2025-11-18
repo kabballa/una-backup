@@ -1,3 +1,23 @@
+# ---------------------------------------------
+# Configuration for the 'apps/' folder
+# ---------------------------------------------
+# 1. Ignore ALL files and subdirectories within 'apps/'
+apps/*
+
+# 2. Create an exception: DO NOT ignore the .gitkeep file
+# (This ensures the 'apps' folder remains visible on GitHub)
+!apps/.gitkeep
+
+# Ignore files and directories created by the build environment (if any)
+.DS_Store
+.vscode/
+
+# Ignore log files content that is generated during runtime
+# The empty files themselves (logs/access.log and logs/error.log) 
+# must be committed first using 'git add' and 'git commit'
+logs/access.log
+logs/error.log
+
 # Ignore all .env files in all directories
 **/.env
 
